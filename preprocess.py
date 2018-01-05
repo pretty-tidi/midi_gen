@@ -37,13 +37,14 @@ def get_all_base():
 
     print("Total: ", i, "Total with baseline: ", count, file=sys.stderr)
 
-def transpose():
+# gets valid bass lines (single key signature and single time signature)
+def get_workable_bass():
 
     valid = 0
     dir_name = "data/"
 
     file_names = os.listdir(dir_name)
-    cap = 1000 # len(file_names)
+    cap = len(file_names)
 
     for i in tqdm(range(cap)):
         try:
@@ -59,10 +60,29 @@ def transpose():
     print(valid, "valid out of", cap, file=sys.stderr)
 
 
+def shift_and_write():
+    dir_name = "data/"
+    with open("bass_consistent_time_and_key.txt", "r") as f:
+        file_names = f.readlines()
+        file_names = [file_name.strip() for file_name in file_names]
+
+    cap = 10 # len(file_names)
+
+    for i in tqdm(range(cap)):
+        try:
+            b = Bass(dir_name + file_names[i])
+        except:
+            print("Exception with " + file_names[i])
+            continue
+
+        b.auto_transpose()
+        b.write("bass_line_%d.mid" % i)
+
+
 
 
 if __name__ == "__main__":
-    transpose()
+    shift_and_write()
 
 
 

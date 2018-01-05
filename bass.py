@@ -39,9 +39,9 @@ class Bass(object):
         return None
 
     # transpose to c major
-    def to_c_major(self):
+    def to_c_major(self): # TODO
         if not self.valid:
-            print("to_c_major on invalid Bass object", file=sys.stderr)
+            print("not Transposing on invalid Bass object", file=sys.stderr)
             return
         if not self.major:
             print("Transposing minor key bass line to C major...", file=sys.stderr)
@@ -51,9 +51,9 @@ class Bass(object):
         return "This dick"
 
     # transpose to a minor
-    def to_a_minor(self):
+    def to_a_minor(self): # TODO
         if not self.valid:
-            print("to_c_major on invalid Bass object", file=sys.stderr)
+            print("not Transposing on invalid Bass object", file=sys.stderr)
             return
         if self.major:
             print("Transposing major key bass line to A minor..", file=sys.stderr)
@@ -62,8 +62,17 @@ class Bass(object):
         return "This dick"
 
 
+    def auto_transpose(self):
+        if not self.valid:
+            print("not transposing on invalid Bass object", file=sys.stderr)
+            return
+        if self.major:
+            self.to_c_major()
+        else:
+            self.to_a_minor()
+
     # generator of the one-hot note vectors for the rnn
-    def note_vector_gen(self):
+    def note_vector_gen(self): # TODO
         yield "this dick"
 
     # write the bass instrument with the file name file_name
@@ -71,8 +80,9 @@ class Bass(object):
     # make the file called whatever, but make sure it has the single instrument called bass or something,
     # so that this object can be used not only during preprocessing, but then to re-read these written
     # midi bass lines and use this for the note_vector_gen with training
-    def write(self, file_name):
+    def write(self, file_name): # TODO
         print("write does nothing", file=sys.stderr)
+        print(file_name)
         return
 
 
