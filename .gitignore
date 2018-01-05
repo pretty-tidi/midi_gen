@@ -335,4 +335,5 @@ Thumbs.db
 
 # personal, the rest was copied from a general .gitignore online
 data/
+venv/
 
