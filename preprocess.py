@@ -170,7 +170,7 @@ def test_vector_gen():
     if not b.valid:
         print("invalid")
         sys.exit(1)
-
+    b.auto_transpose()
     for v in b.time_step_vector_gen():
         print(v)
 
