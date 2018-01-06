@@ -22,8 +22,8 @@ class Bass(object):
 
         midi = pretty_midi.PrettyMIDI(file_name)
 
-        self.bass_inst = self._get_bass(midi)
-        if self.bass_inst == None:
+        bass_inst = self._get_bass(midi)
+        if bass_inst == None:
             self.valid = False
             self.invalid_reason = "No instrument with 'bass/Bass' in name"
             return
@@ -54,6 +54,8 @@ class Bass(object):
         self.gets_the_beat = midi.time_signature_changes[0].denominator
         self.tempo = midi.estimate_tempo()
         self.length = midi.get_end_time() # should return length of midi file in seconds
+        self.beats = midi.get_beats()
+        self.notes = bass_inst.notes
 
 
     # find if there is a bass line instrument, return it if there iss
@@ -66,25 +68,23 @@ class Bass(object):
     # transpose to c major
     # pretty_midi maps shit in terms of half steps, 0-11 being c major, c# major, d major, etc
     def to_c_major(self):
-
         if self.key == 0:
             return
 
         # shift them all up to nearest c octave. up cause bass notes tend to be low, don't wanna overflow
         shift_amt = 12 - self.key
-        for note in self.bass_inst.notes:
+        for note in self.notes:
             note.pitch += shift_amt
 
     # transpose to a minor
     # pretty_midi maps shit in terms of half steps, 12-23 being c minor, c# minor, d minor etc
     def to_a_minor(self):
-
         if self.key == 21:
             return
 
         # shift them to a minor. most will be shifted up, some down though
         shift_amt = 21 - self.key
-        for note in self.bass_inst.notes:
+        for note in self.notes:
             note.pitch += shift_amt
 
     def auto_transpose(self):
@@ -101,14 +101,22 @@ class Bass(object):
     #   0-87 are corresponding notes on the piano (88 keys)
     #   88 is for the lack of a note (rest)
     #   89 is for continuation of the previous note
-    def time_step_vector_gen(self): # TODO this is pseduo code
-        # set/calculate whatever bullshit
-        total_beats = 71717
-        for i in range(total_beats):
-            # calculate some shit, get the vector
-            vector = range(90) # needs to be tensor object
-            yield vector
+    def time_step_vector_gen(self):
+        note_change = False
+        index_in_notes = 0
+        for beat_sec in self._get_half_beats():  # beat is an increment in seconds
+            if self.notes[index_in_notes].end <= beat_sec:
+                note_change = True
+                index_in_notes += 1
+            if self.notes[index_in_notes].start >= beat_sec:
+                if not note_change:
+                    yield Bass._vectorize(89) # continuation of previous note
+                else:
+                    yield Bass._vectorize(self.notes[index_in_notes].pitch)
+            else:
+                yield Bass._vectorize(88) # rest/lack of pitch
 
+        return
 
     # this doesn't always work right for some reason. it'll write it properly to play but
     # prettyMIDI has errors re-reading those written files
@@ -119,7 +127,7 @@ class Bass(object):
         # Create an Instrument instance for a cello instrument
         bass_program = pretty_midi.instrument_name_to_program('Cello')
         bass = pretty_midi.Instrument(program=bass_program)
-        bass.notes = self.bass_inst.notes
+        bass.notes = self.notes
         bass.name = "bassline"
         # Add the cello instrument to the PrettyMIDI object
         bass_line.instruments.append(bass)
@@ -130,4 +138,36 @@ class Bass(object):
     def _empty_initiate(self):
         print("Nothing happening", file=sys.stderr)
         return
+
+    # generator
+    def _get_half_beats(self):
+        for i in range(len(self.beats) - 1):
+            yield self.beats[i]
+            yield (self.beats[i+1] - self.beats[i]) / 2
+        yield self.beats[len(self.beats)-1]
+        return
+
+    # i have no idea how to use tensorflow or numpy arrays
+    @staticmethod
+    def _vectorize(pitch):
+        # v = tensorflow.Variable(tensorflow.float32, (None, 90))
+        # return v
+        v = [0] * 90
+        v[pitch] = 1
+        return v
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

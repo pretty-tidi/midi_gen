@@ -82,10 +82,6 @@ def shift_and_write():
         b.write(out_dir_name + "bass_line_%d.mid" % i)
 
 
-def check_generated_bass_files():
-    bass = Bass("data/transposed/bass_line_0.mid")
-    print(bass.bass_inst.name)
-
 def check_beats_per_measure():
     dir_name = "data/"
     out_dir_name = "data/transposed/"
@@ -175,15 +171,14 @@ def test_vector_gen():
         print("invalid")
         sys.exit(1)
 
-    print(b.tempo)
-    print(b.length)
+    for v in b.time_step_vector_gen():
+        print(v)
+
+
 
 
 if __name__ == "__main__":
     test_vector_gen()
-
-
-
 
 
 
