@@ -114,6 +114,7 @@ class Bass(object):
                 else:
                     yield Bass._vectorize(self.notes[index_in_notes].pitch)
             else:
+                note_change = False # i think i want this here
                 yield Bass._vectorize(88) # rest/lack of pitch
 
         return
@@ -150,7 +151,8 @@ class Bass(object):
     # i have no idea how to use tensorflow or numpy arrays
     @staticmethod
     def _vectorize(pitch):
-        # v = tensorflow.Variable(tensorflow.float32, (None, 90))
+        # v = tensorflow.Variable(tensorflow.zeros(90))
+        # v[pitch] = 0
         # return v
         v = [0] * 90
         v[pitch] = 1
