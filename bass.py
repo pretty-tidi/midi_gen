@@ -1,35 +1,60 @@
 import pretty_midi
 import sys, re
+import tensorflow
+
+# creates a PrettyMIDI and gets the bass line from it. Marks as either valid or invalid bass object
+# reasons it could be invalid:
+#   no bass line/instrument with bass in the name
+#   key signature changes around (hard to work with)
+#   time signature changes around (hard to work with)
+#   time signature is not 4 beats per measure
+#
+# has a generator function for generating the vector for each time step (for the lstm)
 
 class Bass(object):
 
-    def __init__(self, midi_file_name):
+    def __init__(self, file_name=None, already_bass=False):
 
-        try:
-            midi = pretty_midi.PrettyMIDI(midi_file_name)
-        except:
-            raise Exception("class Bass: Error reading" + midi_file_name)
+        # will be useful for generating new midis from whatever lstm generates
+        if file_name == None:
+            self._empty_initiate()
+            return
+
+        midi = pretty_midi.PrettyMIDI(file_name)
 
         self.bass_inst = self._get_bass(midi)
         if self.bass_inst == None:
             self.valid = False
             self.invalid_reason = "No instrument with 'bass/Bass' in name"
             return
-        elif len(midi.key_signature_changes) != 1:
+        elif len(midi.key_signature_changes) != 1 and not already_bass:
             self.valid = False
-            self.invalid_reason = "Key signature change amount is not 1. Weird to use"
+            self.invalid_reason = "Key signature change amount is %d. Weird to use" % len(midi.key_signature_changes)
             return
         elif len(midi.time_signature_changes) != 1:
             self.valid = False
-            self.invalid_reason = "Time signature change amount is not 1. Weird to use"
+            self.invalid_reason = "Time signature change amount is %d. Weird to use" % len(midi.time_signature_changes)
+            return
+        elif midi.time_signature_changes[0].numerator != 4:
+            self.valid = False
+            self.invalid_reason = "Only doing 4/x time sig right now"
             return
         else:
             self.valid = True
             self.invalid_reason = "Not invalid"
 
         # pretty midi maps major keys to 0-11 and minor keys to 12-23
-        self.major = True if midi.key_signature_changes[0].key_number < 12 else False
-        self.key = midi.key_signature_changes[0]
+        if midi.key_signature_changes[0].key_number < 12:
+            self.major = True
+        else:
+            self.major =  False
+
+        self.key = midi.key_signature_changes[0].key_number
+        self.beats_per_measure = midi.time_signature_changes[0].numerator
+        self.gets_the_beat = midi.time_signature_changes[0].denominator
+        self.tempo = midi.estimate_tempo()
+        self.length = midi.get_end_time() # should return length of midi file in seconds
+
 
     # find if there is a bass line instrument, return it if there iss
     def _get_bass(self, midi):
@@ -39,28 +64,28 @@ class Bass(object):
         return None
 
     # transpose to c major
-    def to_c_major(self): # TODO
-        if not self.valid:
-            print("not Transposing on invalid Bass object", file=sys.stderr)
+    # pretty_midi maps shit in terms of half steps, 0-11 being c major, c# major, d major, etc
+    def to_c_major(self):
+
+        if self.key == 0:
             return
-        if not self.major:
-            print("Transposing minor key bass line to C major...", file=sys.stderr)
 
-
-
-        return "This dick"
+        # shift them all up to nearest c octave. up cause bass notes tend to be low, don't wanna overflow
+        shift_amt = 12 - self.key
+        for note in self.bass_inst.notes:
+            note.pitch += shift_amt
 
     # transpose to a minor
-    def to_a_minor(self): # TODO
-        if not self.valid:
-            print("not Transposing on invalid Bass object", file=sys.stderr)
+    # pretty_midi maps shit in terms of half steps, 12-23 being c minor, c# minor, d minor etc
+    def to_a_minor(self):
+
+        if self.key == 21:
             return
-        if self.major:
-            print("Transposing major key bass line to A minor..", file=sys.stderr)
 
-
-        return "This dick"
-
+        # shift them to a minor. most will be shifted up, some down though
+        shift_amt = 21 - self.key
+        for note in self.bass_inst.notes:
+            note.pitch += shift_amt
 
     def auto_transpose(self):
         if not self.valid:
@@ -72,17 +97,37 @@ class Bass(object):
             self.to_a_minor()
 
     # generator of the one-hot note vectors for the rnn
-    def note_vector_gen(self): # TODO
-        yield "this dick"
+    # vector specs:
+    #   0-87 are corresponding notes on the piano (88 keys)
+    #   88 is for the lack of a note (rest)
+    #   89 is for continuation of the previous note
+    def time_step_vector_gen(self): # TODO this is pseduo code
+        # set/calculate whatever bullshit
+        total_beats = 71717
+        for i in range(total_beats):
+            # calculate some shit, get the vector
+            vector = range(90) # needs to be tensor object
+            yield vector
 
-    # write the bass instrument with the file name file_name
-    # use pretty_midi to do this
-    # make the file called whatever, but make sure it has the single instrument called bass or something,
-    # so that this object can be used not only during preprocessing, but then to re-read these written
-    # midi bass lines and use this for the note_vector_gen with training
+
+    # this doesn't always work right for some reason. it'll write it properly to play but
+    # prettyMIDI has errors re-reading those written files
+    # copy pasta from documentation
     def write(self, file_name): # TODO
-        print("write does nothing", file=sys.stderr)
-        print(file_name)
-        return
+        # Create a PrettyMIDI object
+        bass_line = pretty_midi.PrettyMIDI()
+        # Create an Instrument instance for a cello instrument
+        bass_program = pretty_midi.instrument_name_to_program('Cello')
+        bass = pretty_midi.Instrument(program=bass_program)
+        bass.notes = self.bass_inst.notes
+        bass.name = "bassline"
+        # Add the cello instrument to the PrettyMIDI object
+        bass_line.instruments.append(bass)
+        # Write out the MIDI data
+        bass_line.write(file_name)
 
+    # will be useful for generating new midis from whatever lstm generates
+    def _empty_initiate(self):
+        print("Nothing happening", file=sys.stderr)
+        return
 

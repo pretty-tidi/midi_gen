@@ -1,3 +1,5 @@
+# bunch of functions that were used somewhere in the pre processing stage
+# kept as an archive of how to use pretty_midi
 import pretty_midi
 import os, re, sys
 from tqdm import tqdm
@@ -62,6 +64,7 @@ def get_workable_bass():
 
 def shift_and_write():
     dir_name = "data/"
+    out_dir_name = "data/transposed/"
     with open("bass_consistent_time_and_key.txt", "r") as f:
         file_names = f.readlines()
         file_names = [file_name.strip() for file_name in file_names]
@@ -76,13 +79,108 @@ def shift_and_write():
             continue
 
         b.auto_transpose()
-        b.write("bass_line_%d.mid" % i)
+        b.write(out_dir_name + "bass_line_%d.mid" % i)
 
 
+def check_generated_bass_files():
+    bass = Bass("data/transposed/bass_line_0.mid")
+    print(bass.bass_inst.name)
+
+def check_beats_per_measure():
+    dir_name = "data/"
+    out_dir_name = "data/transposed/"
+    with open("bass_consistent_time_and_key.txt", "r") as f:
+        file_names = f.readlines()
+        file_names = [file_name.strip() for file_name in file_names]
+
+    cap = 1000  # len(file_names)
+
+    time_sigs = {}
+
+    for i in tqdm(range(cap)):
+        try:
+            b = Bass(dir_name + file_names[i])
+        except:
+            print("Exception with " + file_names[i])
+            continue
+
+        beats = b.beats_per_measure
+        if beats in time_sigs:
+            time_sigs[beats] += 1
+        else:
+            time_sigs[beats] = 1
+
+    for key in time_sigs:
+        print("Beats per measure:", key, " | Amount:", time_sigs[key])
+    print("Total:", cap)
+
+
+def check_time_and_gen():
+    dir_name_out = "data/transposed/"
+    dir_name_in = "data/"
+
+    with open("bass_consistent_time_and_key.txt", "r") as f:
+        bass_midis = f.readlines()
+        bass_midis = [name.strip() for name in bass_midis]
+
+    cap = len(bass_midis)
+    amt = 0
+    for i in tqdm(range(cap)):
+        try:
+            b = Bass(file_name=dir_name_in + bass_midis[i])
+        except:
+            print("Error reading" + bass_midis[i], file=sys.stderr)
+            continue
+        if b.valid:
+            print(bass_midis[i])
+            b.auto_transpose()
+            b.write(dir_name_out + "bass_line_time4_%d.mid" % amt)
+            amt += 1
+    print("Amount:", amt, file=sys.stderr)
+
+
+def check_bass_keys():
+    bass_files = os.listdir("data/transposed")
+    cap = 1000 # len(bass_files)
+    dir = "data/transposed/"
+
+    keys = {}
+
+    for i in tqdm(range(cap)):
+        try:
+            b = Bass(file_name=dir + bass_files[i], already_bass=True)
+        except:
+            print("Error with", dir + bass_files[i])
+            print(sys.exc_info()[0])
+            continue
+        if not b.valid:
+            print("What the fuck?", b.invalid_reason)
+            continue
+        if b.key in keys:
+            keys[b.key] += 1
+        else:
+            keys[b.key] = 1
+    print("Printing stats...")
+    for key in keys:
+        print("Key signature:", key, "--Amount:", keys[key])
+
+def test_vector_gen():
+    try:
+        b = Bass(file_name="data/fff537c7ec012eb3d95245eb79f84adb.mid")
+    except:
+        print("Error opening file")
+        sys.exit(1)
+
+    if not b.valid:
+        print("invalid")
+        sys.exit(1)
+
+    print(b.tempo)
+    print(b.length)
 
 
 if __name__ == "__main__":
-    shift_and_write()
+    test_vector_gen()
 
 
 
