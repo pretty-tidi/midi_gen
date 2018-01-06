@@ -143,7 +143,7 @@ class Bass(object):
     def _get_half_beats(self):
         for i in range(len(self.beats) - 1):
             yield self.beats[i]
-            yield (self.beats[i+1] - self.beats[i]) / 2
+            yield (self.beats[i+1] + self.beats[i]) / 2
         yield self.beats[len(self.beats)-1]
         return
 
