@@ -9,17 +9,18 @@ from tensorflow.contrib import rnn
 import random
 import collections
 import time
-import IPython.display
+#This is for displaying output as playable thing in ipython
+#import IPython.display
 
 #Literally load all midis as prettyMidis into a list
 if(os.getcwd().split('/')[-1] != 'unpackedMidis'):
     os.chdir("unpackedMidis")
-
-predictedOut = pm.PrettyMIDI(initial_tempo=80)
-bassN = pm.Instrument(program=39, is_drum=False, name="Bass")
-predictedOut.instruments.append(bassN)
-
-velocity = 100
+#This is for getting the it to output a playable thingy
+#
+#predictedOut = pm.PrettyMIDI(initial_tempo=80)
+#bassN = pm.Instrument(program=39, is_drum=False, name="Bass")
+#predictedOut.instruments.append(bassN)
+#
 fileList = [x for x in glob.glob("*.mid")]
 songList = []
 badSongs = []
@@ -86,7 +87,7 @@ vocab_size = len(dictionary)
 
 # Parameters (Mess with these)
 learning_rate = 0.01
-training_iters = 5000 
+training_iters = 5000#usualy 50,000, but I wanted to make some adjustments without waiting too long 
 display_step = 1000
 n_input = 3
 
@@ -184,15 +185,13 @@ with tf.Session() as session:
     print("Run on command line.")
     print("\ttensorboard --logdir=%s" % (logs_path))
     print("Point your web browser to: http://localhost:6006/")
-    print(dictionary)
     while True:
         prompt = "%s words: " % n_input
         sentence = input(prompt)
         sentence = sentence.strip()
         words = sentence.split(' ')
         if len(words) != n_input:
-            #continue
-            break
+            continue
         try:
             symbols_in_keys = [dictionary[str(words[i])] for i in range(len(words))]
             for i in range(32):
@@ -202,11 +201,6 @@ with tf.Session() as session:
                 sentence = "%s %s" % (sentence,reverse_dictionary[onehot_pred_index])
                 symbols_in_keys = symbols_in_keys[1:]
                 symbols_in_keys.append(onehot_pred_index)
-            for pitch, start, end in zip(sentence, [x for x in range(len(sentence))], [x + 0.5 for x in range(len(sentence))]):
-                print("Appending notes ", pitch)
-                bassN.notes.append(pm.Note(velocity, pitch, start, end))
-            print("Display the audio!")
-            IPython.display.Audio(predictedOut.fluidsynth(fs=16000), rate=16000)
             print(sentence)
         except:
             print("Word not in dictionary")
