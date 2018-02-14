@@ -53,6 +53,7 @@ songList[0].instruments[0].notes[0]
 
 #So this builds two dictionaries. One for notes -> numbers, and the other for numbers -> notes
 #You could also use pretty_midis pm.key_name_to_key_number() and pm.key_number_to_key_name()
+#You can ignore this for now
 def build_dataset(words):
     count = collections.Counter(words).most_common()
     dictionary = dict()
